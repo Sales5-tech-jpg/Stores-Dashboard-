@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Previous Year Stores Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0d14;
+    --surface: #111520;
+    --surface2: #171d2e;
+    --border: rgba(255,255,255,0.06);
+    --accent1: #f97316;
+    --accent2: #6366f1;
+    --accent3: #10b981;
+    --accent4: #f59e0b;
+    --accent5: #ec4899;
+    --accent6: #06b6d4;
+    --text: #f0f2f8;
+    --muted: #8892a4;
+    --glow: rgba(249,115,22,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 10%, rgba(99,102,241,0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(249,115,22,0.07) 0%, transparent 50%);
+  }
+
+  header {
+    padding: 32px 40px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(10px);
+  }
+
+  .logo-area h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .logo-area p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+    font-weight: 300;
+  }
+
+  .year-toggle {
+    display: flex;
+    gap: 6px;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .year-btn {
+    padding: 7px 18px;
+    border: none;
+    border-radius: 7px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .year-btn.active {
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    color: white;
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 28px 40px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .kpi-card:nth-child(1)::before { background: linear-gradient(90deg, var(--accent1), var(--accent4)); }
+  .kpi-card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent2), var(--accent5)); }
+  .kpi-card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent3), var(--accent6)); }
+  .kpi-card:nth-child(4)::before { background: linear-gradient(90deg, var(--accent5), var(--accent1)); }
+
+  .kpi-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 500;
+  }
+
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    margin: 8px 0 4px;
+    line-height: 1;
+  }
+
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .kpi-icon {
+    position: absolute;
+    top: 20px; right: 20px;
+    font-size: 28px;
+    opacity: 0.18;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 0 40px 20px;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+
+  .chart-card:hover { border-color: rgba(255,255,255,0.1); }
+
+  .chart-card.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .chart-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+
+  .chart-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  .chart-wrap {
+    position: relative;
+  }
+
+  .two-donuts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .donut-block { text-align: center; }
+  .donut-block canvas { max-height: 200px; }
+  .donut-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 10px;
+    font-weight: 500;
+  }
+
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+    padding: 0 40px 40px;
+  }
+
+  .rank-list { list-style: none; margin-top: 8px; }
+  .rank-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .rank-item:last-child { border-bottom: none; }
+
+  .rank-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    width: 22px;
+    text-align: center;
+  }
+
+  .rank-bar-wrap { flex: 1; }
+  .rank-name {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+  .rank-bar-bg {
+    height: 5px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .rank-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 1s ease;
+  }
+
+  .rank-count {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    min-width: 32px;
+    text-align: right;
+  }
+
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .kpi-card, .chart-card { animation: fadeUp 0.5s ease both; }
+  .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(2) { animation-delay: 0.1s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.2s; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <h1>🏪 Store Openings Dashboard</h1>
+    <p>Brand Performance · FY 2024-25 & 2025-26</p>
+  </div>
+  <div class="year-toggle">
+    <button class="year-btn active" onclick="setYear('all')">All Years</button>
+    <button class="year-btn" onclick="setYear('2024-25')">2024-25</button>
+    <button class="year-btn" onclick="setYear('2025-26')">2025-26</button>
+  </div>
+</header>
+
+<!-- KPI Row -->
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-icon">🏬</div>
+    <div class="kpi-label">Total Stores Opened</div>
+    <div class="kpi-value" id="kpi-total" style="color:var(--accent1)">327</div>
+    <div class="kpi-sub">Across all brands & months</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon">🥇</div>
+    <div class="kpi-label">Top Brand</div>
+    <div class="kpi-value" id="kpi-topbrand" style="font-size:22px;color:var(--accent2)">BK Royal</div>
+    <div class="kpi-sub" id="kpi-topbrand-sub">88 stores opened</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon">📅</div>
+    <div class="kpi-label">Peak Month</div>
+    <div class="kpi-value" id="kpi-peak" style="color:var(--accent3)">Dec</div>
+    <div class="kpi-sub" id="kpi-peak-sub">49 stores in December</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon">🏷️</div>
+    <div class="kpi-label">Active Brands</div>
+    <div class="kpi-value" id="kpi-brands" style="color:var(--accent4)">15</div>
+    <div class="kpi-sub">Brands across the year</div>
+  </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="charts-grid">
+  <div class="chart-card full-width">
+    <div class="chart-title">Monthly Store Openings — Line Trend</div>
+    <div class="chart-subtitle">Total stores opened per month (Apr → Mar fiscal year)</div>
+    <div class="chart-wrap" style="height:230px">
+      <canvas id="lineChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card">
+    <div class="chart-title">Stores by Brand — Bar Chart</div>
+    <div class="chart-subtitle">Total openings per brand</div>
+    <div class="chart-wrap" style="height:280px">
+      <canvas id="barChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Market Share — Pie & Donut</div>
+    <div class="chart-subtitle">Brand distribution across fiscal years</div>
+    <div class="two-donuts">
+      <div class="donut-block">
+        <canvas id="pieChart"></canvas>
+        <div class="donut-label">Overall Share</div>
+      </div>
+      <div class="donut-block">
+        <canvas id="donutChart"></canvas>
+        <div class="donut-label">Top 6 Brands</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="charts-grid">
+  <div class="chart-card full-width">
+    <div class="chart-title">Top 6 Brands — Monthly Stacked Area</div>
+    <div class="chart-subtitle">Monthly breakdown by leading brands across the fiscal year</div>
+    <div class="chart-wrap" style="height:260px">
+      <canvas id="stackedBar"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Section -->
+<div class="bottom-grid">
+  <div class="chart-card">
+    <div class="chart-title">Year-over-Year Comparison</div>
+    <div class="chart-subtitle">2024-25 vs 2025-26 by brand</div>
+    <div class="chart-wrap" style="height:260px">
+      <canvas id="yoyBar"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Brand Rankings</div>
+    <div class="chart-subtitle">Ranked by total store openings</div>
+    <ul class="rank-list" id="rankList"></ul>
+  </div>
+</div>
+
+<footer>
+  Store Openings Dashboard · Data: Previous Year Stores · FY 2024-25 & 2025-26
+</footer>
+
+<script>
+// ─── RAW DATA ──────────────────────────────────────────────────────────────────
+const MONTHS = ['Apr','May','June','July','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+
+const DATA_ALL = {
+  monthly: {Apr:7,May:23,June:33,July:30,Aug:21,Sep:34,Oct:26,Nov:34,Dec:49,Jan:13,Feb:26,Mar:31},
+  brandTotals: {"BK Royal":88,"Mc'd":56,"DIL-KFC":38,"Subway":31,"Americana KFC (Containers)":29,"BK GG":25,"CBTL":20,"Sapphier - Pizza Hut / Pizza Joy":9,"DIL-Pizza Hut":9,"Chilli's":8,"Popeye's Jubliant":7,"Sapphier - KFC":3,"Punjab Grill-lite Bite":3,"Haldiram":1,"Youmee-lite Bite":0},
+  brandMonthTop: {
+    "BK Royal":   [1,9,19,15,5,8,6,3,15,1,1,5],
+    "Mc'd":       [2,7,4,5,4,4,5,11,10,1,0,3],
+    "DIL-KFC":    [0,0,0,0,2,7,2,10,4,2,6,5],
+    "Subway":     [1,1,1,3,3,3,2,4,6,1,4,2],
+    "Americana KFC (Containers)":[1,2,2,0,1,6,7,1,3,2,3,1],
+    "BK GG":      [0,0,0,0,2,2,1,2,5,2,4,7]
+  }
+};
+
+const DATA_2425 = {
+  monthly: {Apr:6,May:21,June:29,July:27,Aug:18,Sep:26,Oct:22,Nov:28,Dec:42,Jan:0,Feb:0,Mar:0},
+  brandTotals: {"BK Royal":81,"Mc'd":52,"DIL-KFC":25,"Subway":24,"Americana KFC (Containers)":23,"BK GG":12,"CBTL":18,"DIL-Pizza Hut":7,"Popeye's Jubliant":7,"Chilli's":5,"Punjab Grill-lite Bite":2,"Sapphier - Pizza Hut / Pizza Joy":0,"Sapphier - KFC":0,"Haldiram":1,"Youmee-lite Bite":0},
+  brandMonthTop: {
+    "BK Royal":   [1,9,19,15,5,8,6,3,15,0,0,0],
+    "Mc'd":       [2,7,4,5,4,4,5,11,10,0,0,0],
+    "DIL-KFC":    [0,0,0,0,2,7,2,10,4,0,0,0],
+    "Subway":     [1,1,1,3,3,3,2,4,6,0,0,0],
+    "Americana KFC (Containers)":[1,2,2,0,1,6,7,1,3,0,0,0],
+    "BK GG":      [0,0,0,0,2,2,1,2,5,0,0,0]
+  }
+};
+
+const DATA_2526 = {
+  monthly: {Apr:1,May:2,June:4,July:3,Aug:3,Sep:8,Oct:4,Nov:6,Dec:7,Jan:13,Feb:26,Mar:31},
+  brandTotals: {"BK Royal":7,"Mc'd":4,"DIL-KFC":13,"Subway":7,"Americana KFC (Containers)":6,"BK GG":13,"CBTL":2,"DIL-Pizza Hut":2,"Popeye's Jubliant":0,"Chilli's":3,"Punjab Grill-lite Bite":1,"Sapphier - Pizza Hut / Pizza Joy":9,"Sapphier - KFC":3,"Haldiram":0,"Youmee-lite Bite":0},
+  brandMonthTop: {
+    "BK Royal":   [0,0,0,0,0,0,0,0,0,1,1,5],
+    "Mc'd":       [0,0,0,0,0,0,0,0,0,1,0,3],
+    "DIL-KFC":    [0,0,0,0,0,0,0,0,0,2,6,5],
+    "Subway":     [0,0,0,0,0,0,0,0,0,1,4,2],
+    "Americana KFC (Containers)":[0,0,0,0,0,0,0,0,0,2,3,1],
+    "BK GG":      [0,0,0,0,0,0,0,0,0,2,4,7]
+  }
+};
+
+const COLORS = ['#f97316','#6366f1','#10b981','#f59e0b','#ec4899','#06b6d4','#a78bfa','#fb923c','#34d399','#fbbf24','#f472b6','#38bdf8','#c084fc','#4ade80','#facc15'];
+
+let currentYear = 'all';
+let currentData = DATA_ALL;
+let charts = {};
+
+function getData(key) { return currentData[key]; }
+
+// ─── CHART DEFAULTS ────────────────────────────────────────────────────────────
+Chart.defaults.color = '#8892a4';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = 'DM Sans';
+
+const commonGridOpts = {
+  grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+  ticks: { color: '#8892a4', font: { size: 11 } }
+};
+
+// ─── BUILD CHARTS ─────────────────────────────────────────────────────────────
+function buildLine() {
+  const ctx = document.getElementById('lineChart').getContext('2d');
+  const vals = MONTHS.map(m => getData('monthly')[m] || 0);
+
+  const grad = ctx.createLinearGradient(0,0,0,200);
+  grad.addColorStop(0, 'rgba(249,115,22,0.35)');
+  grad.addColorStop(1, 'rgba(249,115,22,0)');
+
+  charts.line = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: MONTHS,
+      datasets: [{
+        label: 'Stores Opened',
+        data: vals,
+        borderColor: '#f97316',
+        backgroundColor: grad,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#f97316',
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#171d2e', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 10 } },
+      scales: { x: commonGridOpts, y: { ...commonGridOpts, beginAtZero: true } }
+    }
+  });
+}
+
+function buildBar() {
+  const ctx = document.getElementById('barChart').getContext('2d');
+  const bt = getData('brandTotals');
+  const entries = Object.entries(bt).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+
+  charts.bar = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: entries.map(([k]) => k.length > 15 ? k.slice(0,15)+'…' : k),
+      datasets: [{
+        label: 'Total Stores',
+        data: entries.map(([,v]) => v),
+        backgroundColor: entries.map((_,i) => COLORS[i % COLORS.length] + 'cc'),
+        borderColor: entries.map((_,i) => COLORS[i % COLORS.length]),
+        borderWidth: 1.5,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#171d2e', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 } },
+      scales: {
+        x: { ...commonGridOpts, beginAtZero: true },
+        y: { grid: { display: false }, ticks: { color: '#c4cdd8', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function buildPie() {
+  const ctx = document.getElementById('pieChart').getContext('2d');
+  const bt = getData('brandTotals');
+  const entries = Object.entries(bt).filter(([,v]) => v > 0);
+
+  charts.pie = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: entries.map(([k]) => k),
+      datasets: [{
+        data: entries.map(([,v]) => v),
+        backgroundColor: COLORS.map(c => c + 'cc'),
+        borderColor: '#0a0d14',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#171d2e', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }
+      }
+    }
+  });
+}
+
+function buildDonut() {
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  const bt = getData('brandTotals');
+  const top6 = Object.entries(bt).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const rest = Object.values(bt).reduce((a,b)=>a+b,0) - top6.reduce((a,[,v])=>a+v,0);
+
+  charts.donut = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: [...top6.map(([k])=>k), 'Others'],
+      datasets: [{
+        data: [...top6.map(([,v])=>v), rest],
+        backgroundColor: [...COLORS.slice(0,6).map(c=>c+'cc'), '#334155cc'],
+        borderColor: '#0a0d14',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#171d2e', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }
+      }
+    }
+  });
+}
+
+function buildStacked() {
+  const ctx = document.getElementById('stackedBar').getContext('2d');
+  const bmt = getData('brandMonthTop');
+  const topBrands = Object.keys(bmt);
+
+  charts.stacked = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: MONTHS,
+      datasets: topBrands.map((brand, i) => ({
+        label: brand.length > 18 ? brand.slice(0,18)+'…' : brand,
+        data: bmt[brand],
+        backgroundColor: COLORS[i] + 'cc',
+        borderColor: COLORS[i],
+        borderWidth: 1,
+        borderRadius: 3,
+        stack: 'stack0'
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14, color: '#8892a4', font: { size: 11 } } },
+        tooltip: { backgroundColor: '#171d2e', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }
+      },
+      scales: {
+        x: { stacked: true, ...commonGridOpts },
+        y: { stacked: true, ...commonGridOpts, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function buildYOY() {
+  const ctx = document.getElementById('yoyBar').getContext('2d');
+  const brands = Object.keys(DATA_2425.brandTotals).filter(b => DATA_2425.brandTotals[b] > 0 || DATA_2526.brandTotals[b] > 0);
+  const shortLabels = brands.map(b => b.length > 12 ? b.slice(0,12)+'…' : b);
+
+  charts.yoy = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: shortLabels,
+      datasets: [
+        {
+          label: '2024-25',
+          data: brands.map(b => DATA_2425.brandTotals[b] || 0),
+          backgroundColor: '#6366f1cc',
+          borderColor: '#6366f1',
+          borderWidth: 1.5,
+          borderRadius: 4
+        },
+        {
+          label: '2025-26',
+          data: brands.map(b => DATA_2526.brandTotals[b] || 0),
+          backgroundColor: '#f97316cc',
+          borderColor: '#f97316',
+          borderWidth: 1.5,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, color: '#8892a4', font: { size: 11 } } },
+        tooltip: { backgroundColor: '#171d2e', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#8892a4', font: { size: 10 }, maxRotation: 45 } },
+        y: { ...commonGridOpts, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function buildRankList() {
+  const bt = getData('brandTotals');
+  const sorted = Object.entries(bt).sort((a,b)=>b[1]-a[1]).filter(([,v])=>v>0);
+  const max = sorted[0][1];
+  const ul = document.getElementById('rankList');
+  ul.innerHTML = sorted.map(([name, val], i) => `
+    <li class="rank-item">
+      <span class="rank-num">${i+1}</span>
+      <div class="rank-bar-wrap">
+        <div class="rank-name">${name}</div>
+        <div class="rank-bar-bg">
+          <div class="rank-bar-fill" style="width:${(val/max*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div>
+        </div>
+      </div>
+      <span class="rank-count" style="color:${COLORS[i%COLORS.length]}">${val}</span>
+    </li>
+  `).join('');
+}
+
+function updateKPIs() {
+  const bt = getData('brandTotals');
+  const monthly = getData('monthly');
+  const total = Object.values(bt).reduce((a,b)=>a+b,0);
+  const topBrand = Object.entries(bt).sort((a,b)=>b[1]-a[1])[0];
+  const peakMonth = Object.entries(monthly).sort((a,b)=>b[1]-a[1])[0];
+  const activeBrands = Object.values(bt).filter(v=>v>0).length;
+
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-topbrand').textContent = topBrand[0].length > 10 ? topBrand[0].slice(0,10) : topBrand[0];
+  document.getElementById('kpi-topbrand-sub').textContent = `${topBrand[1]} stores opened`;
+  document.getElementById('kpi-peak').textContent = peakMonth[0];
+  document.getElementById('kpi-peak-sub').textContent = `${peakMonth[1]} stores in ${peakMonth[0]}`;
+  document.getElementById('kpi-brands').textContent = activeBrands;
+}
+
+function destroyCharts() {
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+}
+
+function buildAll() {
+  destroyCharts();
+  updateKPIs();
+  buildLine();
+  buildBar();
+  buildPie();
+  buildDonut();
+  buildStacked();
+  buildYOY();
+  buildRankList();
+}
+
+function setYear(yr) {
+  currentYear = yr;
+  if (yr === 'all') currentData = DATA_ALL;
+  else if (yr === '2024-25') currentData = DATA_2425;
+  else currentData = DATA_2526;
+
+  document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  buildAll();
+}
+
+// Init
+buildAll();
+</script>
+</body>
+</html>
